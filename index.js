@@ -79,25 +79,24 @@ async function handleAssetSelection(ctx, selectedAsset) {
   await ctx.answerCbQuery();
   
   const userName = ctx.from.first_name || 'Inversionista';
+  const userId = ctx.from.id;
   const amount = '50000';
 
-  // URL base (cambiar por tu dominio real en producción)
-  const baseUrl = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
-  const certificateUrl = `${baseUrl}/?name=${encodeURIComponent(userName)}&asset=${encodeURIComponent(selectedAsset)}&amount=${amount}`;
+  // Aquí puedes guardar temporalmente en Firebase que este usuario eligió este activo y está pendiente de pago
+  // await db.collection('investments').doc(userId.toString()).set({ userName, selectedAsset, amount, status: 'pending_payment' });
 
   await ctx.editMessageText(
     `✅ ¡Perfecto, *${userName}*!\n\n` +
     `Has seleccionado *${selectedAsset}* para tu ciclo de 21 días con el paquete de **$50.000 COP**.\n\n` +
-    `🛡️ Hemos generado tu **Certificado de Garantía Virtual** exclusivo.\n\n` +
     `💳 *Datos para realizar tu pago:*\n` +
     `• Nequi / Bre-B: \`300 123 4567\`\n` +
     `• Titular: Apex Inversiones S.A.S.\n` +
     `• Monto exacto: $50.000 COP\n\n` +
-    `Una vez realices el pago, abre tu certificado y pulsa el botón de abajo para enviar tu comprobante:`,
+    `📸 *Importante:* Tu certificado digital 3D y tu ciclo se activarán automáticamente **una vez verifiquemos tu pago**.\n\n` +
+    `Pulsa el botón de abajo cuando hayas realizado la transferencia para enviar tu comprobante:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.url('🌐 Abrir mi Certificado 3D', certificateUrl)],
         [Markup.button.callback('📸 Ya pagué, enviar comprobante', 'send_voucher')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
@@ -105,13 +104,18 @@ async function handleAssetSelection(ctx, selectedAsset) {
   );
 }
 
-// Acción simulada para el flujo de comprobante (Nivel Semi-Automático)
+// Evento cuando el usuario indica que ya pagó y debe enviar la foto
 bot.action('send_voucher', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.reply(
-    `📸 Por favor, envía a continuación la **foto del comprobante (voucher)** de tu pago por Nequi o Bre-B.\n\n` +
-    `Nuestro equipo validará la transacción y activará tu ciclo de inmediato.`
+  await ctx.editMessageText(
+    `📸 *Envío de Comprobante*\n\n` +
+    `Por favor, **envía a continuación la foto de tu voucher o captura de pantalla** de la transferencia por Nequi o Bre-B en este mismo chat.\n\n` +
+    `Nuestro equipo la revisará de inmediato.`,
+    {
+      parse_mode: 'Markdown'
+    }
   );
+  // Opcional: Activar un estado en memoria o en Firebase para saber que el siguiente mensaje de este usuario es una foto de comprobante.
 });
 
 // Eventos para cada activo disponible
