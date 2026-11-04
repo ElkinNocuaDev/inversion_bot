@@ -44,7 +44,7 @@ bot.action('menu_packages', async (ctx) => {
     `*🟢 Paquete Nuevo Inversor*\n` +
     `• *Inversión Base:* $50.000 COP\n` +
     `• *Plazo del Ciclo:* 21 días\n` +
-    `• *Rendimiento Estimado:* +15% a +25% por ciclo\n` +
+    `• *Rendimiento Estimado:* 15% a 25% por ciclo\n` +
     `• *Retorno Proyectado:* ~ $57.500 a $62.500 COP\n` +
     `• *Activos a elegir:* Bitcoin ₿, S&P 500 📈, Oro 🥇 o Petróleo 🛢️.\n\n` +
     `¿Deseas activar este paquete ahora mismo?`,
@@ -82,7 +82,7 @@ async function handleAssetSelection(ctx, selectedAsset) {
   const amount = '50000';
 
   // URL base (cambiar por tu dominio real en producción)
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
   const certificateUrl = `${baseUrl}/?name=${encodeURIComponent(userName)}&asset=${encodeURIComponent(selectedAsset)}&amount=${amount}`;
 
   await ctx.editMessageText(
