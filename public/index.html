@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado de Garantía - Apex Inversiones</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #0b0f19;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #d4af37;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+
+        /* Contenedor 3D de la Moneda */
+        .scene {
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 30px auto;
+            perspective: 1000px;
+            cursor: grab;
+        }
+
+        .scene:active {
+            cursor: grabbing;
+        }
+
+        .coin {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 6px solid #f3e5ab;
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.5), inset 0 0 15px rgba(0, 0, 0, 0.4);
+            background: radial-gradient(circle, #ffd700 0%, #b8860b 100%);
+            color: #2b2100;
+            text-align: center;
+        }
+
+        .coin-back {
+            transform: rotateY(180deg);
+            background: radial-gradient(circle, #e6c687 0%, #996515 100%);
+        }
+
+        .coin-face h2 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+        }
+
+        .coin-face span {
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        /* Tarjeta de Detalles */
+        .card-details {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #94a3b8;
+        }
+
+        .detail-value {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
+        .badge {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* Botón de Descarga Estilizado */
+        .download-btn {
+            margin-top: 25px;
+            width: 100%;
+            background: linear-gradient(135deg, #d4af37 0%, #aa771c 100%);
+            color: #0b0f19;
+            font-weight: 700;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Ocultar elementos de UI al momento de imprimir/descargar PDF */
+        @media print {
+            .download-btn {
+                display: none;
+            }
+            body {
+                background: #0b0f19 !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            /* Forzar que la moneda se vea perfectamente de frente al imprimir */
+            .coin {
+                transform: rotateX(0deg) rotateY(0deg) !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Apex Inversiones</h1>
+            <p>Certificado Digital de Garantía Activa</p>
+        </div>
+
+        <!-- Moneda Interactiva 3D -->
+        <div class="scene" id="coinScene">
+            <div class="coin" id="coin">
+                <div class="coin-face">
+                    <span>APEX</span>
+                    <h2 id="coinAmount">$50k</h2>
+                    <span>COP</span>
+                </div>
+                <div class="coin-face coin-back">
+                    <span>GARANTÍA</span>
+                    <h2>21</h2>
+                    <span>DÍAS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles de la Inversión -->
+        <div class="card-details">
+            <div class="detail-row">
+                <span class="detail-label">Inversionista:</span>
+                <span class="detail-value" id="userName">Jhonny R.</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Activo Elegido:</span>
+                <span class="detail-value" id="userAsset">Bitcoin (₿)</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Monto Base:</span>
+                <span class="detail-value" id="userAmount">$50.000 COP</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Plazo Ciclo:</span>
+                <span class="detail-value" id="userTerm">21 Días</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Estado:</span>
+                <span class="detail-value"><span class="badge">Activo / Verificado</span></span>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            ID de Seguridad: <span id="securityHash">APEX-9823-COL</span><br>
+            Este certificado avala la participación en el ciclo de rendimiento a corto plazo.
+        </div>
+
+        <!-- Botón para Descargar / Guardar Garantía -->
+        <button class="download-btn" onclick="descargarGarantia()">📥 Descargar Garantía Digital</button>
+    </div>
+
+    <script>
+        // Función para leer los parámetros de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const nameParam = urlParams.get('name');
+        const assetParam = urlParams.get('asset');
+        const amountParam = urlParams.get('amount');
+
+        // Asignar valores dinámicos si existen en la URL
+        if (nameParam) {
+            document.getElementById('userName').textContent = decodeURIComponent(nameParam);
+        }
+        if (assetParam) {
+            document.getElementById('userAsset').textContent = decodeURIComponent(assetParam);
+        }
+        if (amountParam) {
+            document.getElementById('userAmount').textContent = `$${Number(amountParam).toLocaleString()} COP`;
+            document.getElementById('coinAmount').textContent = `$${amountParam >= 1000 ? (amountParam/1000) + 'k' : amountParam}`;
+        }
+
+        // Generar un ID de Seguridad único basado en los datos del usuario (o aleatorio si no hay datos)
+        const seedText = (nameParam || 'USER') + (assetParam || 'BTC') + (amountParam || '50000');
+        let hashInt = 0;
+        for (let i = 0; i < seedText.length; i++) {
+            hashInt = (hashInt << 5) - hashInt + seedText.charCodeAt(i);
+            hashInt |= 0;
+        }
+        const uniqueIdCode = Math.abs(hashInt).toString().substring(0, 4).padEnd(4, '8');
+        const uniqueSecurityHash = `APEX-${uniqueIdCode}-COL`;
+        
+        document.getElementById('securityHash').textContent = uniqueSecurityHash;
+
+        // Interactividad táctil y de mouse para girar la moneda 3D
+        const scene = document.getElementById('coinScene');
+        const coin = document.getElementById('coin');
+
+        let isDragging = false;
+        let startX, startY;
+        let rotateX = 15;
+        let rotateY = 25;
+
+        coin.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+        scene.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            rotateY += deltaX * 0.5;
+            rotateX -= deltaY * 0.5;
+
+            coin.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        scene.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.touches[0].clientX - startX;
+            const deltaY = e.touches[0].clientY - startY;
+            
+            rotateY += deltaX * 0.5;
+            rotateX -= deltaY * 0.5;
+
+            coin.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // ========================================================
+        // FUNCIÓN PARA ENDEREZAR LA MONEDA Y LANZAR LA DESCARGA
+        // ========================================================
+        function descargarGarantia() {
+            // Coloca la moneda perfectamente de frente (0 grados)
+            coin.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            
+            // Abre el panel de impresión / guardar como PDF
+            window.print();
+        }
+    </script>
+</body>
+</html>
