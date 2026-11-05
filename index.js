@@ -2,15 +2,22 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const admin = require('firebase-admin');
+const fs = require('fs');
 require('dotenv').config();
 
-// Inicializar Firebase con las variables de entorno de Render
+// Intentar leer el archivo secreto de Render o buscarlo localmente para desarrollo
+let serviceAccount;
+const secretPath = '/etc/secrets/serviceAccountKey.json';
+
+if (fs.existsSync(secretPath)) {
+  serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+} else {
+  // Si estás probando en local en tu PC, puedes usar un archivo local si lo prefieres
+  serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
+}
+
 admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined
-  })
+  credential: admin.credential.cert(serviceAccount)
 });
 
 const db = admin.firestore();
