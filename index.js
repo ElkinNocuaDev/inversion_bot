@@ -2,12 +2,13 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-// const admin = require('firebase-admin');
+const firebaseAdmin = require('firebase-admin');
 require('dotenv').config();
 
-// Extraer el objeto admin correctamente (soporte para CJS y ESM interop)
+// Compatibilidad total para inicializar Firebase Admin
 const admin = firebaseAdmin.default || firebaseAdmin;
 
+// Cargar credenciales de Firebase desde el archivo secreto de Render
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
 
