@@ -2,32 +2,29 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const firebaseAdmin = require('firebase-admin');
+const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Compatibilidad total para inicializar Firebase Admin
-const admin = firebaseAdmin.default || firebaseAdmin;
-
-// Cargar credenciales de Firebase desde el archivo secreto de Render
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
 
 try {
   if (fs.existsSync(secretPath)) {
-    const fileContent = fs.readFileSync(secretPath, 'utf8');
-    serviceAccount = JSON.parse(fileContent);
-    console.log("🔐 Credenciales de Firebase cargadas correctamente desde el archivo secreto de Render.");
+    const rawContent = fs.readFileSync(secretPath, 'utf8');
+    console.log("📄 Contenido raw leído de Render (primeros 50 caracteres):", rawContent.substring(0, 50));
+    serviceAccount = JSON.parse(rawContent);
+    console.log("🔐 Credenciales parseadas con éxito. Project ID:", serviceAccount.project_id);
   } else {
     // Respaldo local para pruebas en tu PC
     serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
     console.log("💻 Credenciales cargadas desde el archivo local.");
   }
 } catch (error) {
-  console.error("❌ Error crítico al leer el archivo JSON de credenciales:", error.message);
+  console.error("❌ Error crítico al parsear el JSON de credenciales:", error.message);
   process.exit(1);
 }
 
-// Inicializar Firebase Admin
+// Inicializar Firebase Admin de forma segura
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
