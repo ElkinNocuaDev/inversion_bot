@@ -5,14 +5,14 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 require('dotenv').config();
 
-// Intentar leer el archivo secreto de Render o buscarlo localmente para desarrollo
+// Cargar credenciales desde el archivo secreto de Render o desde el entorno local
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
 
 if (fs.existsSync(secretPath)) {
   serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
 } else {
-  // Si estás probando en local en tu PC, puedes usar un archivo local si lo prefieres
+  // Ruta de respaldo para pruebas locales en tu PC si tienes el archivo en la raíz
   serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
 }
 
