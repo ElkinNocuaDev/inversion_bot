@@ -2,7 +2,7 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const admin = require('firebase-admin');
+// const admin = require('firebase-admin');
 require('dotenv').config();
 
 // Extraer el objeto admin correctamente (soporte para CJS y ESM interop)
