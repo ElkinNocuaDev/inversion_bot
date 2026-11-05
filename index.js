@@ -2,11 +2,8 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const firebaseAdmin = require('firebase-admin');
+const admin = require('firebase-admin');
 require('dotenv').config();
-
-// Garantizar la compatibilidad del objeto admin en CommonJS
-const admin = firebaseAdmin.default || firebaseAdmin;
 
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
@@ -25,9 +22,9 @@ try {
   process.exit(1);
 }
 
-// Inicializar Firebase Admin de forma segura
+// Inicializar Firebase usando el método certificado para evitar errores de objetos undefined
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential ? admin.credential.cert(serviceAccount) : admin.cert(serviceAccount)
 });
 
 const db = admin.firestore();
