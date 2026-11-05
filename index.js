@@ -1,9 +1,12 @@
 const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
-const admin = require('firebase-admin');
 const fs = require('fs');
+const admin = require('firebase-admin');
 require('dotenv').config();
+
+// Extraer el objeto admin correctamente (soporte para CJS y ESM interop)
+const admin = firebaseAdmin.default || firebaseAdmin;
 
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
@@ -23,12 +26,7 @@ try {
   process.exit(1);
 }
 
-// Validación de seguridad para asegurarnos de que el objeto tiene el formato correcto
-if (!serviceAccount || !serviceAccount.project_id || !serviceAccount.private_key) {
-  console.error("❌ Error: El objeto serviceAccount está incompleto o mal formateado.");
-  process.exit(1);
-}
-
+// Inicializar Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
