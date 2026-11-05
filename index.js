@@ -2,8 +2,11 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const admin = require('firebase-admin');
+const firebaseAdmin = require('firebase-admin');
 require('dotenv').config();
+
+// Garantizar la compatibilidad del objeto admin en CommonJS
+const admin = firebaseAdmin.default || firebaseAdmin;
 
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
@@ -11,11 +14,9 @@ const secretPath = '/etc/secrets/serviceAccountKey.json';
 try {
   if (fs.existsSync(secretPath)) {
     const rawContent = fs.readFileSync(secretPath, 'utf8');
-    console.log("📄 Contenido raw leído de Render (primeros 50 caracteres):", rawContent.substring(0, 50));
     serviceAccount = JSON.parse(rawContent);
     console.log("🔐 Credenciales parseadas con éxito. Project ID:", serviceAccount.project_id);
   } else {
-    // Respaldo local para pruebas en tu PC
     serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
     console.log("💻 Credenciales cargadas desde el archivo local.");
   }
