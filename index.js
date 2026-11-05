@@ -5,16 +5,26 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 require('dotenv').config();
 
-// Cargar credenciales de Firebase de forma segura
+// Cargar credenciales de Firebase de forma 100% segura
 let serviceAccount;
-const secretPath = '/etc/secrets/serviceAccountKey.json'; // Nombre con el que guardaste el archivo en Render
+const secretPath = '/etc/secrets/serviceAccountKey.json';
 
-if (fs.existsSync(secretPath)) {
-  // Entorno de Producción (Render Secret Files)
-  serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
-} else {
-  // Entorno Local (si tienes tu JSON guardado en tu PC)
-  serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
+try {
+  if (fs.existsSync(secretPath)) {
+    // Entorno de Producción (Render Secret Files)
+    serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+  } else {
+    // Entorno Local (Lectura dinámica para evitar el error de MODULE_NOT_FOUND en compilación)
+    const localPath = path.join(__dirname, 'apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
+    if (fs.existsSync(localPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+    } else {
+      throw new Error('No se encontró ningún archivo de credenciales de Firebase.');
+    }
+  }
+} catch (error) {
+  console.error('Error cargando las credenciales de Firebase:', error);
+  process.exit(1);
 }
 
 admin.initializeApp({
