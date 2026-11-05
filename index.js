@@ -5,25 +5,27 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 require('dotenv').config();
 
-// Cargar credenciales de Firebase de forma 100% segura
 let serviceAccount;
 const secretPath = '/etc/secrets/serviceAccountKey.json';
 
 try {
   if (fs.existsSync(secretPath)) {
-    // Entorno de Producción (Render Secret Files)
-    serviceAccount = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+    const fileContent = fs.readFileSync(secretPath, 'utf8');
+    serviceAccount = JSON.parse(fileContent);
+    console.log("🔐 Credenciales de Firebase cargadas correctamente desde el archivo secreto de Render.");
   } else {
-    // Entorno Local (Lectura dinámica para evitar el error de MODULE_NOT_FOUND en compilación)
-    const localPath = path.join(__dirname, 'apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
-    if (fs.existsSync(localPath)) {
-      serviceAccount = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-    } else {
-      throw new Error('No se encontró ningún archivo de credenciales de Firebase.');
-    }
+    // Respaldo local para pruebas en tu PC
+    serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
+    console.log("💻 Credenciales cargadas desde el archivo local.");
   }
 } catch (error) {
-  console.error('Error cargando las credenciales de Firebase:', error);
+  console.error("❌ Error crítico al leer el archivo JSON de credenciales:", error.message);
+  process.exit(1);
+}
+
+// Validación de seguridad para asegurarnos de que el objeto tiene el formato correcto
+if (!serviceAccount || !serviceAccount.project_id || !serviceAccount.private_key) {
+  console.error("❌ Error: El objeto serviceAccount está incompleto o mal formateado.");
   process.exit(1);
 }
 
