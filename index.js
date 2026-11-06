@@ -297,10 +297,15 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// Aprobación del administrador
+// ==========================================
+// ACCIONES DEL ADMINISTRADOR (APROBAR / RECHAZAR)
+// ==========================================
+
+// 1. Aprobar Pago
 bot.action(/^approve_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = ctx.match[1];
+  const adminName = ctx.from.first_name || 'Admin';
 
   try {
     const secureToken = 'APEX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -312,11 +317,15 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
     });
 
     const userDoc = await db.collection('investments').doc(targetUserId).get();
+    if (!userDoc.exists) {
+      return ctx.reply('⚠️ No se encontró la inversión para este usuario en la base de datos.');
+    }
     const userData = userDoc.data();
 
     const baseUrl = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
     const secureCertificateUrl = `${baseUrl}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
 
+    // Notificar al inversionista
     await ctx.telegram.sendMessage(
       targetUserId,
       `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
@@ -326,11 +335,48 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    await ctx.editMessageCaption(`✅ *Pago Aprobado con éxito para el usuario* \`${targetUserId}\``, { parse_mode: 'Markdown' });
+    // Actualizar el mensaje del admin removiendo los botones
+    await ctx.editMessageCaption(
+      `✅ *Pago Aprobado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
+      { parse_mode: 'Markdown' }
+    );
 
   } catch (error) {
     console.error('Error al aprobar el pago:', error);
-    await ctx.reply('❌ Ocurrió un error al aprobar la inversión.');
+    await ctx.reply('❌ Ocurrió un error al aprobar la inversión en la base de datos.');
+  }
+});
+
+// 2. Rechazar Pago
+bot.action(/^reject_(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const targetUserId = ctx.match[1];
+  const adminName = ctx.from.first_name || 'Admin';
+
+  try {
+    await db.collection('investments').doc(targetUserId).update({
+      status: 'rejected',
+      rejectedAt: FieldValue.serverTimestamp()
+    });
+
+    // Notificar al inversionista que su comprobante fue rechazado
+    await ctx.telegram.sendMessage(
+      targetUserId,
+      `❌ *Lo sentimos, tu comprobante no pudo ser verificado.*\n\n` +
+      `Es posible que la imagen no sea clara, el monto no coincida o los datos de la transferencia estén incompletos.\n\n` +
+      `Por favor, verifica la información y vuelve a enviar tu comprobante o contacta a soporte si tienes dudas.`,
+      { parse_mode: 'Markdown' }
+    );
+
+    // Actualizar el mensaje del admin removiendo los botones
+    await ctx.editMessageCaption(
+      `❌ *Pago Rechazado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
+      { parse_mode: 'Markdown' }
+    );
+
+  } catch (error) {
+    console.error('Error al rechazar el pago:', error);
+    await ctx.reply('❌ Ocurrió un error al procesar el rechazo.');
   }
 });
 
