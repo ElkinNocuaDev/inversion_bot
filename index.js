@@ -153,7 +153,7 @@ async function handleAssetSelection(ctx, selectedAsset) {
       selectedAsset,
       amount,
       status: 'pending_payment',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp()
     });
   } catch (err) {
     console.error('Error al guardar en Firebase:', err);
@@ -308,7 +308,7 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
     await db.collection('investments').doc(targetUserId).update({
       status: 'approved',
       secureToken: secureToken,
-      approvedAt: admin.firestore.FieldValue.serverTimestamp()
+      approvedAt: FieldValue.serverTimestamp()
     });
 
     const userDoc = await db.collection('investments').doc(targetUserId).get();
