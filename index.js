@@ -2,7 +2,7 @@ const { Telegraf, Markup } = require('telegraf');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 require('dotenv').config();
 
@@ -23,12 +23,11 @@ try {
   process.exit(1);
 }
 
-// Inicializar Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+// Inicializar Firebase utilizando directamente la función cert
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
-// Obtener la instancia de Firestore de forma segura
 const db = getFirestore();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
