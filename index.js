@@ -33,9 +33,11 @@ const db = getFirestore();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
+const WEBHOOK_PATH = `/telegram-webhook-${process.env.BOT_TOKEN.split(':')[0]}`;
 
 // ==========================================
-// 1. RUTA PROTEGIDA DEL CERTIFICADO (¡Debe ir ANTES de express.static!)
+// 1. RUTA PROTEGIDA DEL CERTIFICADO Y SALUD (HEALTH CHECK)
 // ==========================================
 app.get('/', async (req, res) => {
   const { token } = req.query;
@@ -75,11 +77,6 @@ app.get('/', async (req, res) => {
 
 // Servir archivos estáticos auxiliares (CSS, JS, imágenes de la carpeta public)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Iniciar servidor Express
-app.listen(PORT, () => {
-  console.log(`🌐 Servidor web y certificado en línea en el puerto ${PORT}`);
-});
 
 // ==========================================
 // CONFIGURACIÓN DE LOS COMANDOS DEL BOT
@@ -301,7 +298,6 @@ bot.on('photo', async (ctx) => {
 // ACCIONES DEL ADMINISTRADOR (APROBAR / RECHAZAR)
 // ==========================================
 
-// 1. Aprobar Pago
 bot.action(/^approve_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = ctx.match[1];
@@ -322,10 +318,8 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
     }
     const userData = userDoc.data();
 
-    const baseUrl = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
-    const secureCertificateUrl = `${baseUrl}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
+    const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}`;
 
-    // Notificar al inversionista
     await ctx.telegram.sendMessage(
       targetUserId,
       `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
@@ -335,7 +329,6 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    // Actualizar el mensaje del admin removiendo los botones
     await ctx.editMessageCaption(
       `✅ *Pago Aprobado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
       { parse_mode: 'Markdown' }
@@ -347,7 +340,6 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
   }
 });
 
-// 2. Rechazar Pago
 bot.action(/^reject_(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const targetUserId = ctx.match[1];
@@ -359,7 +351,6 @@ bot.action(/^reject_(.+)$/, async (ctx) => {
       rejectedAt: FieldValue.serverTimestamp()
     });
 
-    // Notificar al inversionista que su comprobante fue rechazado
     await ctx.telegram.sendMessage(
       targetUserId,
       `❌ *Lo sentimos, tu comprobante no pudo ser verificado.*\n\n` +
@@ -368,7 +359,6 @@ bot.action(/^reject_(.+)$/, async (ctx) => {
       { parse_mode: 'Markdown' }
     );
 
-    // Actualizar el mensaje del admin removiendo los botones
     await ctx.editMessageCaption(
       `❌ *Pago Rechazado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
       { parse_mode: 'Markdown' }
@@ -380,8 +370,24 @@ bot.action(/^reject_(.+)$/, async (ctx) => {
   }
 });
 
-bot.launch();
-console.log('🤖 Bot de Telegram en ejecución...');
+// ==========================================
+// INTEGRACIÓN DEL WEBHOOK CON EXPRESS Y INICIO DEL SERVIDOR
+// ==========================================
+
+// Configurar la ruta del webhook que Telegram llamará en cada evento
+app.use(bot.webhookCallback(WEBHOOK_PATH));
+
+app.listen(PORT, async () => {
+  console.log(`🌐 Servidor web y certificado en línea en el puerto ${PORT}`);
+
+  try {
+    // Configurar automáticamente el Webhook en Telegram al arrancar
+    await bot.telegram.setWebhook(`${BASE_URL}${WEBHOOK_PATH}`);
+    console.log(`🤖 Webhook de Telegram configurado exitosamente en: ${BASE_URL}${WEBHOOK_PATH}`);
+  } catch (error) {
+    console.error('❌ Error configurando el Webhook en Telegram:', error);
+  }
+});
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
