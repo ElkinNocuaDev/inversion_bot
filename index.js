@@ -312,13 +312,15 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
       approvedAt: FieldValue.serverTimestamp()
     });
 
+    // Obtener los datos reales del usuario desde Firestore
     const userDoc = await db.collection('investments').doc(targetUserId).get();
     if (!userDoc.exists) {
       return ctx.reply('⚠️ No se encontró la inversión para este usuario en la base de datos.');
     }
     const userData = userDoc.data();
 
-    const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}`;
+    // 💡 Aquí incluimos los parámetros name, asset y amount en la URL
+    const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
 
     await ctx.telegram.sendMessage(
       targetUserId,
