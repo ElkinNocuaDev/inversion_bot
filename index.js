@@ -343,6 +343,55 @@ bot.on('photo', async (ctx) => {
   }
 });
 
+// Escuchar los datos de pago enviados por el usuario tras ser aprobado
+bot.on('text', async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const textMessage = ctx.message.text;
+
+  // Ignorar si el mensaje empieza con comandos como /start
+  if (textMessage.startsWith('/')) return;
+
+  try {
+    const userDocRef = db.collection('investments').doc(userId);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) return;
+    const userData = userDoc.data();
+
+    // Verificamos si el usuario está en el paso de registrar sus datos de cobro
+    if (userData.status === 'approved' && userData.waitingForPayoutDetails === true) {
+      
+      // Guardar la información de pago y desactivar la bandera
+      await userDocRef.update({
+        payoutDetails: textMessage,
+        waitingForPayoutDetails: false,
+        payoutRegisteredAt: FieldValue.serverTimestamp()
+      });
+
+      await ctx.reply(
+        `✅ *¡Datos de cobro guardados con éxito!*\n\n` +
+        `Hemos registrado tu información de destino. Al cumplirse tus 21 días de ciclo, tus rendimientos serán transferidos directamente allí.\n\n` +
+        `¡Mucho éxito en tu inversión con Apex! 🚀`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // (Opcional) Notificar al administrador que el usuario ya dejó sus datos de cobro
+      const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+      if (ADMIN_CHAT_ID) {
+        await ctx.telegram.sendMessage(
+          ADMIN_CHAT_ID,
+          `📌 *Datos de Pago Registrados*\n\n` +
+          `• Inversionista: ${userData.userName} (\`${userId}\`)\n` +
+          `• Destino de Ganancias: \`${textMessage}\``,
+          { parse_mode: 'Markdown' }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error al guardar los datos de pago:', error);
+  }
+});
+
 // ==========================================
 // ACCIONES DEL ADMINISTRADOR (APROBAR / RECHAZAR)
 // ==========================================
@@ -355,28 +404,31 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
   try {
     const secureToken = 'APEX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+    // Actualizamos a approved y dejamos listo el estado para recibir datos de pago
     await db.collection('investments').doc(targetUserId).update({
       status: 'approved',
+      waitingForPayoutDetails: true, // Bandera temporal para capturar su siguiente mensaje
       secureToken: secureToken,
       approvedAt: FieldValue.serverTimestamp()
     });
 
-    // Obtener los datos reales del usuario desde Firestore
     const userDoc = await db.collection('investments').doc(targetUserId).get();
     if (!userDoc.exists) {
       return ctx.reply('⚠️ No se encontró la inversión para este usuario en la base de datos.');
     }
     const userData = userDoc.data();
 
-    // 💡 Aquí incluimos los parámetros name, asset y amount en la URL
     const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
 
+    // Notificar al inversionista con su certificado y solicitando sus datos de cobro
     await ctx.telegram.sendMessage(
       targetUserId,
       `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
       `Tu ciclo de 21 días con *${userData.selectedAsset}* está oficialmente activo.\n\n` +
-      `🛡️ Ya puedes abrir tu **Certificado de Garantía 3D** oficial y seguro en el siguiente enlace:\n\n` +
-      `👉 ${secureCertificateUrl}`,
+      `🛡️ Ya puedes abrir tu **Certificado de Garantía 3D** oficial y seguro:\n` +
+      `👉 ${secureCertificateUrl}\n\n` +
+      `📥 *Último paso importante:*\n` +
+      `Por favor, **escribe en este chat los datos donde deseas recibir tus ganancias** al finalizar el ciclo de 21 días (ej: *Nequi: 3001234567 a nombre de [Tu Nombre]* o tu dirección de billetera).`,
       { parse_mode: 'Markdown' }
     );
 
