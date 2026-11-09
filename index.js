@@ -404,10 +404,10 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
   try {
     const secureToken = 'APEX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    // Actualizamos a approved y dejamos listo el estado para recibir datos de pago
+    // Actualizamos en Firestore
     await db.collection('investments').doc(targetUserId).update({
       status: 'approved',
-      waitingForPayoutDetails: true, // Bandera temporal para capturar su siguiente mensaje
+      waitingForPayoutDetails: true,
       secureToken: secureToken,
       approvedAt: FieldValue.serverTimestamp()
     });
@@ -420,17 +420,33 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
 
     const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
 
-    // Notificar al inversionista con su certificado y solicitando sus datos de cobro
-    await ctx.telegram.sendMessage(
-      targetUserId,
-      `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
-      `Tu ciclo de 21 días con *${userData.selectedAsset}* está oficialmente activo.\n\n` +
-      `🛡️ Ya puedes abrir tu **Certificado de Garantía 3D** oficial y seguro:\n` +
-      `👉 ${secureCertificateUrl}\n\n` +
-      `📥 *Último paso importante:*\n` +
-      `Por favor, **escribe en este chat los datos donde deseas recibir tus ganancias** al finalizar el ciclo de 21 días (ej: *Nequi: 3001234567 a nombre de [Tu Nombre]* o tu dirección de billetera).`,
-      { parse_mode: 'Markdown' }
-    );
+    // 💡 GENERAR ENLACE DE INVITACIÓN ÚNICO AL GRUPO VIP DE ACTIVOS
+    const VIP_CHAT_ID = process.env.VIP_CHAT_ID; 
+    let vipInviteLink = '';
+    
+    if (VIP_CHAT_ID) {
+      const inviteLinkObj = await ctx.telegram.createChatInviteLink(VIP_CHAT_ID, {
+        member_limit: 1, // El enlace solo sirve para 1 sola persona y se quema
+        expire_date: Math.floor(Date.now() / 1000) + 86400 // Expira en 24 horas
+      });
+      vipInviteLink = inviteLinkObj.invite_link;
+    }
+
+    // Mensaje enriquecido para el inversor
+    let messageText = `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
+                      `Tu ciclo de 21 días con *${userData.selectedAsset}* está oficialmente activo.\n\n` +
+                      `🛡️ Tu **Certificado de Garantía 3D** oficial:\n👉 ${secureCertificateUrl}\n`;
+
+    if (vipInviteLink) {
+      messageText += `\n📈 *Acceso a Análisis Exclusivo:*\n` +
+                     `Te has ganado el acceso a nuestro canal privado de análisis técnico para Bitcoin, S&P 500, Oro y Petróleo:\n` +
+                     `👉 ${vipInviteLink}\n`;
+    }
+
+    messageText += `\n📥 *Último paso importante:*\n` +
+                   `Por favor, escribe en este chat los datos donde deseas recibir tus ganancias (ej: *Nequi: 3001234567*).`;
+
+    await ctx.telegram.sendMessage(targetUserId, messageText, { parse_mode: 'Markdown' });
 
     await ctx.editMessageCaption(
       `✅ *Pago Aprobado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
