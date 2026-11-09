@@ -123,18 +123,51 @@ bot.action('menu_packages', async (ctx) => {
 
 bot.action('select_50k', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText(
-    `✨ *¡Excelente elección! El Paquete Nuevo Inversor de $50.000 COP es tu puerta de entrada.*\n\n` +
-    `Por favor, selecciona en qué activo deseas poner a trabajar tu capital durante los próximos 21 días:`,
-    {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('₿ Bitcoin', 'asset_btc'), Markup.button.callback('📈 S&P 500', 'asset_sp500')],
-        [Markup.button.callback('🥇 Oro', 'asset_gold'), Markup.button.callback('🛢️ Petróleo', 'asset_oil')],
-        [Markup.button.callback('⬅️ Volver al Menú Principal', 'menu_packages')]
-      ])
+  const userId = ctx.from.id.toString();
+
+  try {
+    // 1. Verificar si el usuario ya tiene un registro previo en Firestore
+    const userDocRef = db.collection('investments').doc(userId);
+    const userDoc = await userDocRef.get();
+
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      const status = data.status;
+
+      // Si está pendiente, esperando aprobación o ya fue aprobado, bloqueamos la compra nueva
+      if (status === 'pending_payment' || status === 'waiting_approval' || status === 'approved') {
+        return ctx.editMessageText(
+          `⚠️ *Ya tienes una inversión o proceso activo*\n\n` +
+          `Actualmente posees un estado de tipo: *${status}*.\n` +
+          `No puedes solicitar un nuevo paquete hasta que tu ciclo actual finalice o tu pago pendiente sea procesado.`,
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
+            ])
+          }
+        );
+      }
     }
-  );
+
+    // Si no tiene bloqueos, procedemos a mostrar los activos
+    await ctx.editMessageText(
+      `✨ *¡Excelente elección! El Paquete Nuevo Inversor de $50.000 COP es tu puerta de entrada.*\n\n` +
+      `Por favor, selecciona en qué activo deseas poner a trabajar tu capital durante los próximos 21 días:`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('₿ Bitcoin', 'asset_btc'), Markup.button.callback('📈 S&P 500', 'asset_sp500')],
+          [Markup.button.callback('🥇 Oro', 'asset_gold'), Markup.button.callback('🛢️ Petróleo', 'asset_oil')],
+          [Markup.button.callback('⬅️ Volver al Menú Principal', 'menu_packages')]
+        ])
+      }
+    );
+
+  } catch (error) {
+    console.error('Error validando estado del usuario:', error);
+    await ctx.reply('❌ Ocurrió un error al verificar tu estado. Intenta de nuevo.');
+  }
 });
 
 async function handleAssetSelection(ctx, selectedAsset) {
@@ -145,7 +178,23 @@ async function handleAssetSelection(ctx, selectedAsset) {
   const amount = '50000';
 
   try {
-    await db.collection('investments').doc(userId.toString()).set({
+    // Doble validación de seguridad al guardar
+    const userDocRef = db.collection('investments').doc(userId.toString());
+    const userDoc = await userDocRef.get();
+
+    if (userDoc.exists && ['pending_payment', 'waiting_approval', 'approved'].includes(userDoc.data().status)) {
+      return ctx.editMessageText(
+        `⚠️ Ya cuentas con una inversión activa o en proceso de validación. No puedes registrar otra simultáneamente.`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
+          ])
+        }
+      );
+    }
+
+    await userDocRef.set({
       userName,
       selectedAsset,
       amount,
