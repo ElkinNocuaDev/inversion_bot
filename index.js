@@ -90,7 +90,7 @@ bot.start((ctx) => {
 
 *¡Bienvenido a Apex Global!*
 
-Lleva tu capital al siguiente nivel con tecnología inteligente de trading. Accede a oportunidades en los mercados internacionales, selecciona el activo de tu preferencia y permite que nuestro bot identifique oportunidades de operación de forma automatizada.
+Accede a oportunidades en los mercados internacionales, selecciona el activo de tu preferencia y permite que APEX BOT identifique oportunidades de operación de forma automatizada.
 
 💵 *Inversión inicial:* Desde 10 USD.
 🔄 *Ciclos de operación:* 21 días.
@@ -216,24 +216,74 @@ async function handleAssetSelection(ctx, selectedAsset) {
     console.error('Error al guardar en Firebase:', err);
   }
 
+  // Menú interactivo para elegir el método de pago cripto
   await ctx.editMessageText(
     `✅ ¡Perfecto, *${userName}*!\n\n` +
-    `Has seleccionado *${selectedAsset}* para tu ciclo global de 21 días con el paquete de **$10 USD**.\n\n` +
-    `💳 *Datos para realizar tu pago en Cripto (USDT):*\n` +
-    `• **Binance Pay ID:** \`123456789\` (o correo: \`pagos@apexglobal.com\`)\n` +
-    `• **Red Blockchain (USDT):** BSC (BEP-20) / Polygon\n` +
-    `• **Dirección Wallet:** \`0x71C...a3B89\`\n` +
-    `• **Monto Exacto:** \`10.00 USDT\`\n\n` +
-    `📸 *Importante:* Envía la captura de tu pago en Binance Pay o el **TXID (Hash)** de la transferencia. Tu certificado 3D se activará tras la verificación.`,
+    `Has seleccionado *${selectedAsset}* para tu ciclo de inversión de 21 días con el paquete de **$10 USD**.\n\n` +
+    `💳 *Selecciona tu método de pago preferido para ver el código QR y los datos:*`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('📸 Ya pagué, enviar comprobante', 'send_voucher')],
+        [Markup.button.callback('⚡ Pagar con Binance Pay', 'pay_binance_pay')],
+        [Markup.button.callback('🔗 Pagar por Red BSC (USDT)', 'pay_bsc_wallet')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
   );
 }
+
+// Opción 1: Binance Pay (Envía imagen QR + Nickname)
+bot.action('pay_binance_pay', async (ctx) => {
+  await ctx.answerCbQuery();
+  
+  const binanceImageUrl = `${BASE_URL}/binance.jpg`;
+
+  try {
+    await ctx.replyWithPhoto(
+      { url: binanceImageUrl },
+      {
+        caption: `⚡ *Pago mediante Binance Pay*\n\n` +
+                 `• **Nickname / Pay ID:** \`startwaves\`[cite: 12]\n` +
+                 `• **Monto Exacto:** \`10.00 USD / USDT\`\n\n` +
+                 `📱 *Instrucciones:*\n` +
+                 `1. Escanea el código QR con tu app de Binance o busca por el Nickname: \`startwaves\`[cite: 12].\n` +
+                 `2. Envía exactamente \`10.00 USD\`.\n\n` +
+                 `📸 *Siguiente paso:* Envía en este chat la **captura de pantalla de tu pago** para que nuestro equipo lo verifique.`,
+        parse_mode: 'Markdown'
+      }
+    );
+  } catch (err) {
+    console.error('Error enviando QR de Binance:', err);
+    await ctx.reply('⚡ Binance Pay Nickname: `startwaves`[cite: 12] (Monto: 10.00 USDT). Envía tu captura de pago aquí.');
+  }
+});
+
+// Opción 2: Red BSC / Polygon (Envía imagen QR del contrato/wallet + Dirección)
+bot.action('pay_bsc_wallet', async (ctx) => {
+  await ctx.answerCbQuery();
+
+  const bscImageUrl = `${BASE_URL}/bsc_qr.jpg`;
+
+  try {
+    await ctx.replyWithPhoto(
+      { url: bscImageUrl },
+      {
+        caption: `🔗 *Pago por Red Blockchain (USDT - BSC)*[cite: 11]\n\n` +
+                 `• **Red:** \`BSC (BNB Smart Chain BEP-20)\`[cite: 11]\n` +
+                 `• **Dirección de Depósito:**\n\`0x27c551cc873a7040700ab0dfc0324d411d3b8f93\`[cite: 11]\n` +
+                 `• **Monto Exacto:** \`10.00 USDT\`[cite: 11]\n\n` +
+                 `📱 *Instrucciones:*\n` +
+                 `1. Escanea el QR o copia la dirección de arriba.\n` +
+                 `2. Envía exactamente \`10.00 USDT\` a través de la red BSC[cite: 11].\n\n` +
+                 `🔗 *Siguiente paso:* Envía en este chat el **TXID (Hash)** de tu transferencia o la captura de pantalla de la red para validarlo.`,
+        parse_mode: 'Markdown'
+      }
+    );
+  } catch (err) {
+    console.error('Error enviando QR de BSC:', err);
+    await ctx.reply('🔗 Red BSC (BEP-20)[cite: 11] Wallet: `0x27c551cc873a7040700ab0dfc0324d411d3b8f93`[cite: 11] (Monto: 10.00 USDT)[cite: 11]. Envía tu TXID aquí.');
+  }
+});
 
 bot.action('send_voucher', async (ctx) => {
   await ctx.answerCbQuery();
@@ -255,8 +305,8 @@ bot.action('asset_oil', async (ctx) => { await handleAssetSelection(ctx, 'Petró
 bot.action('menu_testimonials', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `🎥 *Prueba Social Internacional*\n\n` +
-    `Aquí puedes ver cómo nuestros inversores globales reciben sus retornos directo en sus cuentas de Binance y wallets descentralizadas.\n\n` +
+    `🎥 *Inversores Ganadores*\n\n` +
+    `Aquí puedes ver cómo nuestros inversores reciben sus retornos directo en sus cuentas de Binance y wallets descentralizadas.\n\n` +
     `*(Espacio reservado para capturas de pagos exitosos en USDT)*`,
     {
       parse_mode: 'Markdown',
@@ -271,8 +321,8 @@ bot.action('menu_testimonials', async (ctx) => {
 bot.action('menu_guarantee', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `🛡️ *Tu Garantía Global de Inversión*\n\n` +
-    `Al activar tu paquete de $10 USD, recibes de forma inmediata un **Certificado Digital 3D interactivo** respaldado en la nube.\n\n` +
+    `🛡️ *Tu Garantía de Inversión*\n\n` +
+    `Al activar tu paquete de $10 USD, recibes de forma inmediata un **Certificado Digital Encriptado** respaldado en la nube.\n\n` +
     `Incluye tu nombre, el activo elegido, el monto en USD y un código de seguridad único verifiable.`,
     {
       parse_mode: 'Markdown',
@@ -288,8 +338,8 @@ bot.action('menu_support', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
     `💬 *¿Necesitas asistencia con tu pago en USDT?*\n\n` +
-    `Nuestro equipo de soporte global está disponible para ayudarte.\n\n` +
-    `Escríbenos directamente a: \`@TuAliasDeSoporte\``,
+    `Nuestro equipo de soporte está disponible para ayudarte.\n\n` +
+    `Escríbenos directamente a: \`@jhonnydan05\``,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -307,8 +357,8 @@ bot.action('back_to_start', async (ctx) => {
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Ver Paquetes Globales (USDT)', 'menu_packages')],
-        [Markup.button.callback('🎥 Ver Testimonios Globales', 'menu_testimonials')],
+        [Markup.button.callback('🟢 Ver Paquetes de Inversión (USDT)', 'menu_packages')],
+        [Markup.button.callback('🎥 Ver Testimonios Ganadores', 'menu_testimonials')],
         [Markup.button.callback('🛡️ ¿Cómo funciona la Garantía?', 'menu_guarantee')],
         [Markup.button.callback('💬 Hablar con Soporte', 'menu_support')]
       ])
