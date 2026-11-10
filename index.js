@@ -243,18 +243,18 @@ bot.action('pay_binance_pay', async (ctx) => {
       { url: binanceImageUrl },
       {
         caption: `⚡ *Pago mediante Binance Pay*\n\n` +
-                 `• **Nickname / Pay ID:** \`startwaves\`[cite: 12]\n` +
+                 `• **Binance Pay ID:** \`16869369\`\n` +
                  `• **Monto Exacto:** \`10.00 USD / USDT\`\n\n` +
                  `📱 *Instrucciones:*\n` +
-                 `1. Escanea el código QR con tu app de Binance o busca por el Nickname: \`startwaves\`[cite: 12].\n` +
+                 `1. Escanea el código QR con tu app de Binance o busca por el Binance Pay ID: \`16869369\`.\n` +
                  `2. Envía exactamente \`10.00 USD\`.\n\n` +
                  `📸 *Siguiente paso:* Envía en este chat la **captura de pantalla de tu pago** para que nuestro equipo lo verifique.`,
         parse_mode: 'Markdown'
       }
     );
   } catch (err) {
-    console.error('Error enviando QR de Binance:', err);
-    await ctx.reply('⚡ Binance Pay Nickname: `startwaves`[cite: 12] (Monto: 10.00 USDT). Envía tu captura de pago aquí.');
+    console.error('Error enviando inversión por Binance Pay:', err);
+    await ctx.reply('⚡ Binance Pay ID: `16869369` (Monto: 10.00 USDT). Envía tu captura de pago aquí.');
   }
 });
 
@@ -268,20 +268,20 @@ bot.action('pay_bsc_wallet', async (ctx) => {
     await ctx.replyWithPhoto(
       { url: bscImageUrl },
       {
-        caption: `🔗 *Pago por Red Blockchain (USDT - BSC)*[cite: 11]\n\n` +
-                 `• **Red:** \`BSC (BNB Smart Chain BEP-20)\`[cite: 11]\n` +
-                 `• **Dirección de Depósito:**\n\`0x27c551cc873a7040700ab0dfc0324d411d3b8f93\`[cite: 11]\n` +
-                 `• **Monto Exacto:** \`10.00 USDT\`[cite: 11]\n\n` +
+        caption: `🔗 *Pago por Red Blockchain (USDT - BSC)*\n\n` +
+                 `• **Red:** \`BSC (BNB Smart Chain BEP-20)\`\n` +
+                 `• **Dirección de Depósito:**\n\`0x27c551cc873a7040700ab0dfc0324d411d3b8f93\`\n` +
+                 `• **Monto Exacto:** \`10.00 USDT\`\n\n` +
                  `📱 *Instrucciones:*\n` +
                  `1. Escanea el QR o copia la dirección de arriba.\n` +
-                 `2. Envía exactamente \`10.00 USDT\` a través de la red BSC[cite: 11].\n\n` +
+                 `2. Envía exactamente \`10.00 USDT\` a través de la red BSC.\n\n` +
                  `🔗 *Siguiente paso:* Envía en este chat el **TXID (Hash)** de tu transferencia o la captura de pantalla de la red para validarlo.`,
         parse_mode: 'Markdown'
       }
     );
   } catch (err) {
-    console.error('Error enviando QR de BSC:', err);
-    await ctx.reply('🔗 Red BSC (BEP-20)[cite: 11] Wallet: `0x27c551cc873a7040700ab0dfc0324d411d3b8f93`[cite: 11] (Monto: 10.00 USDT)[cite: 11]. Envía tu TXID aquí.');
+    console.error('Error enviando inversión por la red BSC:', err);
+    await ctx.reply('🔗 Red BSC (BEP-20) Wallet: `0x27c551cc873a7040700ab0dfc0324d411d3b8f93` (Monto: 10.00 USDT). Envía tu TXID aquí.');
   }
 });
 
