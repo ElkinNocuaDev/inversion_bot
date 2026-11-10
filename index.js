@@ -84,14 +84,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 bot.start((ctx) => {
   const userName = ctx.from.first_name || 'Inversionista';
-  
+
   ctx.reply(
-    `¡Hola, *${userName}*! 🌍🚀\n\nBienvenido a Apex Global. Pon a trabajar tu capital de forma inteligente a nivel internacional.\n\n¿Qué te gustaría hacer hoy? Elige una opción abajo para comenzar:`,
+    `¡Hola, *${userName}*! 🌍🚀
+
+*¡Bienvenido a Apex Global!*
+
+Lleva tu capital al siguiente nivel con tecnología inteligente de trading. Accede a oportunidades en los mercados internacionales, selecciona el activo de tu preferencia y permite que nuestro bot identifique oportunidades de operación de forma automatizada.
+
+💵 *Inversión inicial:* Desde 10 USD.
+🔄 *Ciclos de operación:* 21 días.
+
+*Apex Global — Intelligent Trading. Global Opportunities.*
+
+⚠️ *Aviso de riesgo:*
+El trading y las inversiones en mercados financieros implican riesgos. Los rendimientos no están garantizados y es posible perder parte o la totalidad del capital invertido. Los resultados pasados no garantizan resultados futuros.
+
+¿Qué te gustaría hacer hoy? Selecciona una opción para comenzar:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Ver Paquetes Globales (USDT)', 'menu_packages')],
-        [Markup.button.callback('🎥 Ver Testimonios Globales', 'menu_testimonials')],
+        [Markup.button.callback('🟢 Ver Paquetes de Inversión (USDT)', 'menu_packages')],
+        [Markup.button.callback('🎥 Ver Testimonios Ganadores', 'menu_testimonials')],
         [Markup.button.callback('🛡️ ¿Cómo funciona la Garantía?', 'menu_guarantee')],
         [Markup.button.callback('💬 Hablar con Soporte', 'menu_support')]
       ])
