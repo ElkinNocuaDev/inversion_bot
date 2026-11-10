@@ -86,12 +86,12 @@ bot.start((ctx) => {
   const userName = ctx.from.first_name || 'Inversionista';
   
   ctx.reply(
-    `¡Hola, *${userName}*! 🚀\n\nQué bueno tenerte por aquí. Estás a un paso de poner a trabajar tu dinero de forma inteligente, incluso si es tu primera vez invirtiendo.\n\n¿Qué te gustaría hacer hoy? Elige una opción abajo para comenzar:`,
+    `¡Hola, *${userName}*! 🌍🚀\n\nBienvenido a Apex Global. Pon a trabajar tu capital de forma inteligente a nivel internacional.\n\n¿Qué te gustaría hacer hoy? Elige una opción abajo para comenzar:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Ver Paquetes de Inversión', 'menu_packages')],
-        [Markup.button.callback('🎥 Ver Testimonios (Nequi / Bre-B)', 'menu_testimonials')],
+        [Markup.button.callback('🟢 Ver Paquetes Globales (USDT)', 'menu_packages')],
+        [Markup.button.callback('🎥 Ver Testimonios Globales', 'menu_testimonials')],
         [Markup.button.callback('🛡️ ¿Cómo funciona la Garantía?', 'menu_guarantee')],
         [Markup.button.callback('💬 Hablar con Soporte', 'menu_support')]
       ])
@@ -99,34 +99,33 @@ bot.start((ctx) => {
   );
 });
 
-// Menú de Paquetes Actualizado con Proyección de Ganancias Clara
+// Menú de Paquetes Globales Actualizado a $10 USD
 bot.action('menu_packages', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `📊 *Nuestros Planes Activos*\n\n` +
-    `*🟢 Paquete Nuevo Inversor*\n` +
-    `• *Inversión Base:* $50.000 COP\n` +
+    `📊 *Nuestros Planes Globales Activos*\n\n` +
+    `*🟢 Paquete Global Inversor*\n` +
+    `• *Inversión Base:* $10 USD (USDT)\n` +
     `• *Plazo del Ciclo:* 21 días\n` +
     `• *Rendimiento Estimado:* 15% a 25% por ciclo\n` +
-    `• *Retorno Proyectado:* ~ $57.500 a $62.500 COP\n` +
+    `• *Retorno Proyectado:* ~ $11.50 a $12.50 USD\n` +
     `• *Activos a elegir:* Bitcoin ₿, S&P 500 📈, Oro 🥇 o Petróleo 🛢️.\n\n` +
-    `¿Deseas activar este paquete ahora mismo?`,
+    `¿Deseas activar este paquete internacional ahora mismo?`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('👉 Seleccionar Paquete $50.000 COP', 'select_50k')],
+        [Markup.button.callback('👉 Seleccionar Paquete $10 USD', 'select_10usd')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
   );
 });
 
-bot.action('select_50k', async (ctx) => {
+bot.action('select_10usd', async (ctx) => {
   await ctx.answerCbQuery();
   const userId = ctx.from.id.toString();
 
   try {
-    // 1. Verificar si el usuario ya tiene un registro previo en Firestore
     const userDocRef = db.collection('investments').doc(userId);
     const userDoc = await userDocRef.get();
 
@@ -134,7 +133,6 @@ bot.action('select_50k', async (ctx) => {
       const data = userDoc.data();
       const status = data.status;
 
-      // Si está pendiente, esperando aprobación o ya fue aprobado, bloqueamos la compra nueva
       if (status === 'pending_payment' || status === 'waiting_approval' || status === 'approved') {
         return ctx.editMessageText(
           `⚠️ *Ya tienes una inversión o proceso activo*\n\n` +
@@ -150,9 +148,8 @@ bot.action('select_50k', async (ctx) => {
       }
     }
 
-    // Si no tiene bloqueos, procedemos a mostrar los activos
     await ctx.editMessageText(
-      `✨ *¡Excelente elección! El Paquete Nuevo Inversor de $50.000 COP es tu puerta de entrada.*\n\n` +
+      `✨ *¡Excelente elección! El Paquete Global de $10 USD es tu puerta de entrada internacional.*\n\n` +
       `Por favor, selecciona en qué activo deseas poner a trabajar tu capital durante los próximos 21 días:`,
       {
         parse_mode: 'Markdown',
@@ -175,10 +172,9 @@ async function handleAssetSelection(ctx, selectedAsset) {
   
   const userName = ctx.from.first_name || 'Inversionista';
   const userId = ctx.from.id;
-  const amount = '50000';
+  const amount = '10'; // Monto en USD
 
   try {
-    // Doble validación de seguridad al guardar
     const userDocRef = db.collection('investments').doc(userId.toString());
     const userDoc = await userDocRef.get();
 
@@ -198,6 +194,7 @@ async function handleAssetSelection(ctx, selectedAsset) {
       userName,
       selectedAsset,
       amount,
+      currency: 'USD',
       status: 'pending_payment',
       createdAt: FieldValue.serverTimestamp()
     });
@@ -207,13 +204,13 @@ async function handleAssetSelection(ctx, selectedAsset) {
 
   await ctx.editMessageText(
     `✅ ¡Perfecto, *${userName}*!\n\n` +
-    `Has seleccionado *${selectedAsset}* para tu ciclo de 21 días con el paquete de **$50.000 COP**.\n\n` +
-    `💳 *Datos para realizar tu pago:*\n` +
-    `• Nequi / Bre-B: \`300 123 4567\`\n` +
-    `• Titular: Apex Inversiones S.A.S.\n` +
-    `• Monto exacto: $50.000 COP\n\n` +
-    `📸 *Importante:* Tu certificado digital 3D y tu ciclo se activarán automáticamente **una vez verifiquemos tu pago**.\n\n` +
-    `Pulsa el botón de abajo cuando hayas realizado la transferencia para enviar tu comprobante:`,
+    `Has seleccionado *${selectedAsset}* para tu ciclo global de 21 días con el paquete de **$10 USD**.\n\n` +
+    `💳 *Datos para realizar tu pago en Cripto (USDT):*\n` +
+    `• **Binance Pay ID:** \`123456789\` (o correo: \`pagos@apexglobal.com\`)\n` +
+    `• **Red Blockchain (USDT):** BSC (BEP-20) / Polygon\n` +
+    `• **Dirección Wallet:** \`0x71C...a3B89\`\n` +
+    `• **Monto Exacto:** \`10.00 USDT\`\n\n` +
+    `📸 *Importante:* Envía la captura de tu pago en Binance Pay o el **TXID (Hash)** de la transferencia. Tu certificado 3D se activará tras la verificación.`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
@@ -227,9 +224,9 @@ async function handleAssetSelection(ctx, selectedAsset) {
 bot.action('send_voucher', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `📸 *Envío de Comprobante*\n\n` +
-    `Por favor, **envía a continuación la foto de tu voucher o captura de pantalla** de la transferencia por Nequi o Bre-B en este mismo chat.\n\n` +
-    `Nuestro equipo la revisará de inmediato.`,
+    `📸 *Envío de Comprobante / Hash*\n\n` +
+    `Por favor, **envía a continuación la captura de pantalla de tu pago (Binance Pay) o el texto con el TXID (Hash)** de la transferencia en este mismo chat.\n\n` +
+    `Nuestro equipo financiero lo validará de inmediato.`,
     {
       parse_mode: 'Markdown'
     }
@@ -244,13 +241,13 @@ bot.action('asset_oil', async (ctx) => { await handleAssetSelection(ctx, 'Petró
 bot.action('menu_testimonials', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `🎥 *Prueba Social Real*\n\n` +
-    `Aquí puedes ver cómo nuestra comunidad recibe sus ganancias de forma directa a sus cuentas en *Nequi* y *Bre-B*.\n\n` +
-    `*(Aquí enviaremos los videos o capturas de pantalla de las consignaciones exitosas)*`,
+    `🎥 *Prueba Social Internacional*\n\n` +
+    `Aquí puedes ver cómo nuestros inversores globales reciben sus retornos directo en sus cuentas de Binance y wallets descentralizadas.\n\n` +
+    `*(Espacio reservado para capturas de pagos exitosos en USDT)*`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Quiero Invertir Ahora ($50k)', 'menu_packages')],
+        [Markup.button.callback('🟢 Invertir Ahora ($10 USD)', 'menu_packages')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
@@ -260,13 +257,13 @@ bot.action('menu_testimonials', async (ctx) => {
 bot.action('menu_guarantee', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `🛡️ *Tu Garantía de Inversión*\n\n` +
-    `Queremos que te sientas 100% seguro. Al activar cualquier paquete, recibes de forma inmediata un **Certificado de Inversión Virtual interactivo** (una moneda digital animada).\n\n` +
-    `Incluye tu nombre, el activo elegido, el monto y un código de seguridad único.`,
+    `🛡️ *Tu Garantía Global de Inversión*\n\n` +
+    `Al activar tu paquete de $10 USD, recibes de forma inmediata un **Certificado Digital 3D interactivo** respaldado en la nube.\n\n` +
+    `Incluye tu nombre, el activo elegido, el monto en USD y un código de seguridad único verifiable.`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Activar mi Paquete de $50k', 'menu_packages')],
+        [Markup.button.callback('🟢 Activar mi Paquete de $10 USD', 'menu_packages')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
@@ -276,8 +273,8 @@ bot.action('menu_guarantee', async (ctx) => {
 bot.action('menu_support', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
-    `💬 *¿Necesitas ayuda con tu pago o tienes dudas?*\n\n` +
-    `Nuestro equipo de asesores está disponible para atenderte de forma personalizada.\n\n` +
+    `💬 *¿Necesitas asistencia con tu pago en USDT?*\n\n` +
+    `Nuestro equipo de soporte global está disponible para ayudarte.\n\n` +
     `Escríbenos directamente a: \`@TuAliasDeSoporte\``,
     {
       parse_mode: 'Markdown',
@@ -292,12 +289,12 @@ bot.action('back_to_start', async (ctx) => {
   await ctx.answerCbQuery();
   const userName = ctx.from.first_name || 'Inversionista';
   await ctx.editMessageText(
-    `¡Hola, *${userName}*! 🚀\n\n¿Qué te gustaría hacer hoy? Elige una opción abajo:`,
+    `¡Hola, *${userName}*! 🌍🚀\n\n¿Qué te gustaría hacer hoy? Elige una opción abajo:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('🟢 Ver Paquetes de Inversión', 'menu_packages')],
-        [Markup.button.callback('🎥 Ver Testimonios (Nequi / Bre-B)', 'menu_testimonials')],
+        [Markup.button.callback('🟢 Ver Paquetes Globales (USDT)', 'menu_packages')],
+        [Markup.button.callback('🎥 Ver Testimonios Globales', 'menu_testimonials')],
         [Markup.button.callback('🛡️ ¿Cómo funciona la Garantía?', 'menu_guarantee')],
         [Markup.button.callback('💬 Hablar con Soporte', 'menu_support')]
       ])
@@ -305,63 +302,22 @@ bot.action('back_to_start', async (ctx) => {
   );
 });
 
-// Escuchar cuando el usuario envía el comprobante fotográfico
-bot.on('photo', async (ctx) => {
-  const userId = ctx.from.id;
-  const userName = ctx.from.first_name || 'Inversionista';
-  const photo = ctx.message.photo[ctx.message.photo.length - 1];
-  const fileId = photo.file_id;
-
-  try {
-    await db.collection('investments').doc(userId.toString()).update({
-      status: 'waiting_approval',
-      voucherFileId: fileId
-    });
-
-    await ctx.reply(
-      `⏳ *Comprobante recibido con éxito.*\n\nNuestro equipo está validando tu transferencia. En breve recibirás la confirmación y tu certificado 3D autorizado.`,
-      { parse_mode: 'Markdown' }
-    );
-
-    const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
-    if (ADMIN_CHAT_ID) {
-      await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, fileId, {
-        caption: `🔔 *Nuevo Comprobante de Pago*\n\n` +
-                 `• Inversionista: ${userName}\n` +
-                 `• Telegram ID: \`${userId}\`\n` +
-                 `• Monto: $50.000 COP`,
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback(`✅ Aprobar Pago (${userId})`, `approve_${userId}`)],
-          [Markup.button.callback(`❌ Rechazar`, `reject_${userId}`)]
-        ])
-      });
-    }
-  } catch (error) {
-    console.error('Error procesando el comprobante:', error);
-    await ctx.reply('Hubo un error al procesar tu comprobante. Por favor intenta de nuevo.');
-  }
-});
-
-// Escuchar los datos de pago enviados por el usuario tras ser aprobado
-bot.on('text', async (ctx) => {
+// Escuchar cuando el usuario envía el comprobante (foto o texto/TXID)
+bot.on(['photo', 'text'], async (ctx) => {
   const userId = ctx.from.id.toString();
-  const textMessage = ctx.message.text;
-
-  // Ignorar si el mensaje empieza con comandos como /start
-  if (textMessage.startsWith('/')) return;
+  const userName = ctx.from.first_name || 'Inversionista';
 
   try {
     const userDocRef = db.collection('investments').doc(userId);
     const userDoc = await userDocRef.get();
-
     if (!userDoc.exists) return;
     const userData = userDoc.data();
 
-    // Verificamos si el usuario está en el paso de registrar sus datos de cobro
+    // 1. Manejar la recepción de datos de cobro (Wallet USDT / Binance Pay ID)
     if (userData.status === 'approved' && userData.waitingForPayoutDetails === true) {
-      
-      // Guardar la información de pago y desactivar la bandera
+      const textMessage = ctx.message.text;
+      if (!textMessage || textMessage.startsWith('/')) return;
+
       await userDocRef.update({
         payoutDetails: textMessage,
         waitingForPayoutDetails: false,
@@ -370,25 +326,90 @@ bot.on('text', async (ctx) => {
 
       await ctx.reply(
         `✅ *¡Datos de cobro guardados con éxito!*\n\n` +
-        `Hemos registrado tu información de destino. Al cumplirse tus 21 días de ciclo, tus rendimientos serán transferidos directamente allí.\n\n` +
-        `¡Mucho éxito en tu inversión con Apex! 🚀`,
+        `Hemos registrado tu Binance Pay ID / Wallet USDT. Al cumplirse tus 21 días, tus ganancias serán enviadas directamente allí.\n\n` +
+        `¡Mucho éxito en tu ciclo global con Apex! 🚀`,
         { parse_mode: 'Markdown' }
       );
 
-      // (Opcional) Notificar al administrador que el usuario ya dejó sus datos de cobro
       const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
       if (ADMIN_CHAT_ID) {
         await ctx.telegram.sendMessage(
           ADMIN_CHAT_ID,
-          `📌 *Datos de Pago Registrados*\n\n` +
+          `📌 *Wallet de Retorno Registrada*\n\n` +
           `• Inversionista: ${userData.userName} (\`${userId}\`)\n` +
-          `• Destino de Ganancias: \`${textMessage}\``,
+          `• Destino USDT: \`${textMessage}\``,
           { parse_mode: 'Markdown' }
         );
       }
+      return;
     }
+
+    // 2. Manejar la recepción del comprobante de pago (Foto o TXID en texto)
+    if (userData.status === 'pending_payment') {
+      const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+
+      if (ctx.message.photo) {
+        const photo = ctx.message.photo[ctx.message.photo.length - 1];
+        const fileId = photo.file_id;
+
+        await userDocRef.update({
+          status: 'waiting_approval',
+          voucherFileId: fileId
+        });
+
+        await ctx.reply(
+          `⏳ *Comprobante recibido con éxito.*\n\nNuestro equipo financiero está validando tu transacción USDT. En breve recibirás tu certificado 3D.`,
+          { parse_mode: 'Markdown' }
+        );
+
+        if (ADMIN_CHAT_ID) {
+          await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, fileId, {
+            caption: `🔔 *Nuevo Pago USDT (Captura)*\n\n` +
+                     `• Inversionista: ${userName}\n` +
+                     `• Telegram ID: \`${userId}\`\n` +
+                     `• Monto: $10.00 USD`,
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback(`✅ Aprobar Pago (${userId})`, `approve_${userId}`)],
+              [Markup.button.callback(`❌ Rechazar`, `reject_${userId}`)]
+            ])
+          });
+        }
+      } else if (ctx.message.text && !ctx.message.text.startsWith('/')) {
+        const txHash = ctx.message.text;
+
+        await userDocRef.update({
+          status: 'waiting_approval',
+          txHash: txHash
+        });
+
+        await ctx.reply(
+          `⏳ *TXID / Hash recibido con éxito.*\n\nNuestro equipo financiero está validando tu transacción en la blockchain. En breve recibirás tu certificado 3D.`,
+          { parse_mode: 'Markdown' }
+        );
+
+        if (ADMIN_CHAT_ID) {
+          await ctx.telegram.sendMessage(
+            ADMIN_CHAT_ID,
+            `🔔 *Nuevo Pago USDT (Por TXID)*\n\n` +
+            `• Inversionista: ${userName}\n` +
+            `• Telegram ID: \`${userId}\`\n` +
+            `• Monto: $10.00 USD\n` +
+            `• Hash/TXID: \`${txHash}\``,
+            {
+              parse_mode: 'Markdown',
+              ...Markup.inlineKeyboard([
+                [Markup.button.callback(`✅ Aprobar Pago (${userId})`, `approve_${userId}`)],
+                [Markup.button.callback(`❌ Rechazar`, `reject_${userId}`)]
+              ])
+            }
+          );
+        }
+      }
+    }
+
   } catch (error) {
-    console.error('Error al guardar los datos de pago:', error);
+    console.error('Error procesando mensaje:', error);
   }
 });
 
@@ -404,7 +425,6 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
   try {
     const secureToken = 'APEX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    // Actualizamos en Firestore
     await db.collection('investments').doc(targetUserId).update({
       status: 'approved',
       waitingForPayoutDetails: true,
@@ -420,31 +440,29 @@ bot.action(/^approve_(.+)$/, async (ctx) => {
 
     const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
 
-    // 💡 GENERAR ENLACE DE INVITACIÓN ÚNICO AL GRUPO VIP DE ACTIVOS
     const VIP_CHAT_ID = process.env.VIP_CHAT_ID; 
     let vipInviteLink = '';
     
     if (VIP_CHAT_ID) {
       const inviteLinkObj = await ctx.telegram.createChatInviteLink(VIP_CHAT_ID, {
-        member_limit: 1, // El enlace solo sirve para 1 sola persona y se quema
-        expire_date: Math.floor(Date.now() / 1000) + 86400 // Expira en 24 horas
+        member_limit: 1,
+        expire_date: Math.floor(Date.now() / 1000) + 86400
       });
       vipInviteLink = inviteLinkObj.invite_link;
     }
 
-    // Mensaje enriquecido para el inversor
     let messageText = `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
-                      `Tu ciclo de 21 días con *${userData.selectedAsset}* está oficialmente activo.\n\n` +
+                      `Tu ciclo global de 21 días con *${userData.selectedAsset}* ($10 USD) está activo.\n\n` +
                       `🛡️ Tu **Certificado de Garantía 3D** oficial:\n👉 ${secureCertificateUrl}\n`;
 
     if (vipInviteLink) {
-      messageText += `\n📈 *Acceso a Análisis Exclusivo:*\n` +
-                     `Te has ganado el acceso a nuestro canal privado de análisis técnico para Bitcoin, S&P 500, Oro y Petróleo:\n` +
+      messageText += `\n📈 *Acceso a Análisis Exclusivo Global:*\n` +
+                     `Acceso a nuestro canal privado de análisis técnico para Bitcoin, S&P 500, Oro y Petróleo:\n` +
                      `👉 ${vipInviteLink}\n`;
     }
 
     messageText += `\n📥 *Último paso importante:*\n` +
-                   `Por favor, escribe en este chat los datos donde deseas recibir tus ganancias (ej: *Nequi: 3001234567*).`;
+                   `Por favor, escribe en este chat tu **Binance Pay ID** o tu **dirección de billetera USDT** (Red BSC / Polygon) donde deseas recibir tus ganancias al finalizar el ciclo.`;
 
     await ctx.telegram.sendMessage(targetUserId, messageText, { parse_mode: 'Markdown' });
 
@@ -472,9 +490,9 @@ bot.action(/^reject_(.+)$/, async (ctx) => {
 
     await ctx.telegram.sendMessage(
       targetUserId,
-      `❌ *Lo sentimos, tu comprobante no pudo ser verificado.*\n\n` +
-      `Es posible que la imagen no sea clara, el monto no coincida o los datos de la transferencia estén incompletos.\n\n` +
-      `Por favor, verifica la información y vuelve a enviar tu comprobante o contacta a soporte si tienes dudas.`,
+      `❌ *Lo sentimos, tu pago en USDT no pudo ser verificado.*\n\n` +
+      `Es posible que el Hash/TXID sea incorrecto, el monto no coincida o la captura no sea legible.\n\n` +
+      `Por favor, verifica la información o contacta a soporte.`,
       { parse_mode: 'Markdown' }
     );
 
@@ -493,20 +511,15 @@ bot.action(/^reject_(.+)$/, async (ctx) => {
 // INTEGRACIÓN DEL WEBHOOK CON EXPRESS Y INICIO DEL SERVIDOR
 // ==========================================
 
-// Configurar la ruta del webhook que Telegram llamará en cada evento
 app.use(bot.webhookCallback(WEBHOOK_PATH));
 
 app.listen(PORT, async () => {
   console.log(`🌐 Servidor web y certificado en línea en el puerto ${PORT}`);
 
   try {
-    // Configurar automáticamente el Webhook en Telegram al arrancar
     await bot.telegram.setWebhook(`${BASE_URL}${WEBHOOK_PATH}`);
     console.log(`🤖 Webhook de Telegram configurado exitosamente en: ${BASE_URL}${WEBHOOK_PATH}`);
   } catch (error) {
     console.error('❌ Error configurando el Webhook en Telegram:', error);
   }
 });
-
-// process.once('SIGINT', () => bot.stop('SIGINT'));
-// process.once('SIGTERM', () => bot.stop('SIGTERM'));

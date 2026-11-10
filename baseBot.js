@@ -1,9 +1,87 @@
 const { Telegraf, Markup } = require('telegraf');
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 require('dotenv').config();
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+let serviceAccount;
+const secretPath = '/etc/secrets/serviceAccountKey.json';
 
-// 1. Comando /start (Bienvenida y Menú Principal)
+try {
+  if (fs.existsSync(secretPath)) {
+    const rawContent = fs.readFileSync(secretPath, 'utf8');
+    serviceAccount = JSON.parse(rawContent);
+    console.log("🔐 Credenciales parseadas con éxito. Project ID:", serviceAccount.project_id);
+  } else {
+    serviceAccount = require('./apexbot-cd01d-firebase-adminsdk-fbsvc-92fc90bd45.json');
+    console.log("💻 Credenciales cargadas desde el archivo local.");
+  }
+} catch (error) {
+  console.error("❌ Error crítico al parsear el JSON de credenciales:", error.message);
+  process.exit(1);
+}
+
+// Inicializar Firebase utilizando directamente la función cert
+initializeApp({
+  credential: cert(serviceAccount)
+});
+
+const db = getFirestore();
+
+const bot = new Telegraf(process.env.BOT_TOKEN);
+const app = express();
+const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || 'https://inversion-bot-9ewg.onrender.com';
+const WEBHOOK_PATH = `/telegram-webhook-${process.env.BOT_TOKEN.split(':')[0]}`;
+
+// ==========================================
+// 1. RUTA PROTEGIDA DEL CERTIFICADO Y SALUD (HEALTH CHECK)
+// ==========================================
+app.get('/', async (req, res) => {
+  const { token } = req.query;
+
+  // Si no envían token de seguridad, denegamos el acceso inmediatamente
+  if (!token) {
+    return res.status(403).send(`
+      <div style="background:#0b0f19; color:#fff; font-family:sans-serif; text-align:center; padding:50px;">
+        <h2 style="color:#ef4444;">❌ Acceso Denegado</h2>
+        <p>Este certificado es digital y exclusivo. No cuentas con un token de autorización válido.</p>
+        <p style="color:#94a3b8; font-size:0.9rem;">Realiza tu inversión a través de nuestro bot oficial de Telegram.</p>
+      </div>
+    `);
+  }
+
+  try {
+    // Verificar en Firestore si el token existe y está aprobado
+    const snapshot = await db.collection('investments').where('secureToken', '==', token).get();
+
+    if (snapshot.empty) {
+      return res.status(403).send(`
+        <div style="background:#0b0f19; color:#fff; font-family:sans-serif; text-align:center; padding:50px;">
+          <h2 style="color:#ef4444;">❌ Certificado No Encontrado o Inválido</h2>
+          <p>El token proporcionado no está asociado a ningún pago aprobado.</p>
+        </div>
+      `);
+    }
+
+    // Si el token es válido, enviamos la vista del certificado HTML
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+
+  } catch (error) {
+    console.error('Error validando el token en Firebase:', error);
+    res.status(500).send('Error interno del servidor.');
+  }
+});
+
+// Servir archivos estáticos auxiliares (CSS, JS, imágenes de la carpeta public)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ==========================================
+// CONFIGURACIÓN DE LOS COMANDOS DEL BOT
+// ==========================================
+
 bot.start((ctx) => {
   const userName = ctx.from.first_name || 'Inversionista';
   
@@ -21,62 +99,148 @@ bot.start((ctx) => {
   );
 });
 
-// 2. Sección: Paquetes de Inversión
+// Menú de Paquetes Actualizado con Proyección de Ganancias Clara
 bot.action('menu_packages', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
     `📊 *Nuestros Planes Activos*\n\n` +
     `*🟢 Paquete Nuevo Inversor*\n` +
-    `• *Inversión:* $50.000 COP\n` +
-    `• *Plazo:* 21 días\n` +
-    `• *Activos a elegir:* Bitcoin ₿, S&P 500 📈, Oro 🥇 o Petróleo 🛢️.\n` +
-    `• *Beneficio:* Ideal para dar el primer paso y ver resultados a corto plazo.\n\n` +
-    `¿Deseas activar este paquete o ver opciones avanzadas?`,
+    `• *Inversión Base:* $50.000 COP\n` +
+    `• *Plazo del Ciclo:* 21 días\n` +
+    `• *Rendimiento Estimado:* 15% a 25% por ciclo\n` +
+    `• *Retorno Proyectado:* ~ $57.500 a $62.500 COP\n` +
+    `• *Activos a elegir:* Bitcoin ₿, S&P 500 📈, Oro 🥇 o Petróleo 🛢️.\n\n` +
+    `¿Deseas activar este paquete ahora mismo?`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [Markup.button.callback('👉 Seleccionar Paquete $50.000 COP', 'select_50k')],
-        [Markup.button.callback('🔵 Ver Paquetes Avanzados', 'menu_advanced_packages')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
   );
 });
 
-// 3. Selección del Paquete de $50.000 COP (Elección de Activo)
 bot.action('select_50k', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText(
-    `✨ *¡Excelente elección! El Paquete Nuevo Inversor de $50.000 COP es tu puerta de entrada.*\n\n` +
-    `Por favor, selecciona en qué activo deseas poner a trabajar tu capital durante los próximos 21 días:`,
-    {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('₿ Bitcoin', 'asset_btc'), Markup.button.callback('📈 S&P 500', 'asset_sp500')],
-        [Markup.button.callback('🥇 Oro', 'asset_gold'), Markup.button.callback('🛢️ Petróleo', 'asset_oil')],
-        [Markup.button.callback('⬅️ Volver a Paquetes', 'menu_packages')]
-      ])
+  const userId = ctx.from.id.toString();
+
+  try {
+    // 1. Verificar si el usuario ya tiene un registro previo en Firestore
+    const userDocRef = db.collection('investments').doc(userId);
+    const userDoc = await userDocRef.get();
+
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      const status = data.status;
+
+      // Si está pendiente, esperando aprobación o ya fue aprobado, bloqueamos la compra nueva
+      if (status === 'pending_payment' || status === 'waiting_approval' || status === 'approved') {
+        return ctx.editMessageText(
+          `⚠️ *Ya tienes una inversión o proceso activo*\n\n` +
+          `Actualmente posees un estado de tipo: *${status}*.\n` +
+          `No puedes solicitar un nuevo paquete hasta que tu ciclo actual finalice o tu pago pendiente sea procesado.`,
+          {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+              [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
+            ])
+          }
+        );
+      }
     }
-  );
+
+    // Si no tiene bloqueos, procedemos a mostrar los activos
+    await ctx.editMessageText(
+      `✨ *¡Excelente elección! El Paquete Nuevo Inversor de $50.000 COP es tu puerta de entrada.*\n\n` +
+      `Por favor, selecciona en qué activo deseas poner a trabajar tu capital durante los próximos 21 días:`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('₿ Bitcoin', 'asset_btc'), Markup.button.callback('📈 S&P 500', 'asset_sp500')],
+          [Markup.button.callback('🥇 Oro', 'asset_gold'), Markup.button.callback('🛢️ Petróleo', 'asset_oil')],
+          [Markup.button.callback('⬅️ Volver al Menú Principal', 'menu_packages')]
+        ])
+      }
+    );
+
+  } catch (error) {
+    console.error('Error validando estado del usuario:', error);
+    await ctx.reply('❌ Ocurrió un error al verificar tu estado. Intenta de nuevo.');
+  }
 });
 
-// Capturar activo seleccionado (Ejemplo para Bitcoin)
-bot.action('asset_btc', async (ctx) => {
+async function handleAssetSelection(ctx, selectedAsset) {
   await ctx.answerCbQuery();
+  
+  const userName = ctx.from.first_name || 'Inversionista';
+  const userId = ctx.from.id;
+  const amount = '50000';
+
+  try {
+    // Doble validación de seguridad al guardar
+    const userDocRef = db.collection('investments').doc(userId.toString());
+    const userDoc = await userDocRef.get();
+
+    if (userDoc.exists && ['pending_payment', 'waiting_approval', 'approved'].includes(userDoc.data().status)) {
+      return ctx.editMessageText(
+        `⚠️ Ya cuentas con una inversión activa o en proceso de validación. No puedes registrar otra simultáneamente.`,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
+          ])
+        }
+      );
+    }
+
+    await userDocRef.set({
+      userName,
+      selectedAsset,
+      amount,
+      status: 'pending_payment',
+      createdAt: FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('Error al guardar en Firebase:', err);
+  }
+
   await ctx.editMessageText(
-    `✅ Has elegido *Bitcoin (₿)* para tu ciclo de 21 días.\n\n` +
-    `Para proceder con el pago de tus **$50.000 COP** vía Nequi o Bre-B y recibir tu moneda de garantía virtual en HTML, escribe o contacta a nuestro asesor asignado aquí: \n👉 \`@TuAliasDeSoporte\``,
+    `✅ ¡Perfecto, *${userName}*!\n\n` +
+    `Has seleccionado *${selectedAsset}* para tu ciclo de 21 días con el paquete de **$50.000 COP**.\n\n` +
+    `💳 *Datos para realizar tu pago:*\n` +
+    `• Nequi / Bre-B: \`300 123 4567\`\n` +
+    `• Titular: Apex Inversiones S.A.S.\n` +
+    `• Monto exacto: $50.000 COP\n\n` +
+    `📸 *Importante:* Tu certificado digital 3D y tu ciclo se activarán automáticamente **una vez verifiquemos tu pago**.\n\n` +
+    `Pulsa el botón de abajo cuando hayas realizado la transferencia para enviar tu comprobante:`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
+        [Markup.button.callback('📸 Ya pagué, enviar comprobante', 'send_voucher')],
         [Markup.button.callback('⬅️ Volver al Menú Principal', 'back_to_start')]
       ])
     }
   );
+}
+
+bot.action('send_voucher', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    `📸 *Envío de Comprobante*\n\n` +
+    `Por favor, **envía a continuación la foto de tu voucher o captura de pantalla** de la transferencia por Nequi o Bre-B en este mismo chat.\n\n` +
+    `Nuestro equipo la revisará de inmediato.`,
+    {
+      parse_mode: 'Markdown'
+    }
+  );
 });
 
+bot.action('asset_btc', async (ctx) => { await handleAssetSelection(ctx, 'Bitcoin (₿)'); });
+bot.action('asset_sp500', async (ctx) => { await handleAssetSelection(ctx, 'S&P 500 (📈)'); });
+bot.action('asset_gold', async (ctx) => { await handleAssetSelection(ctx, 'Oro (🥇)'); });
+bot.action('asset_oil', async (ctx) => { await handleAssetSelection(ctx, 'Petróleo (🛢️)'); });
 
-// 4. Sección: Testimonios
 bot.action('menu_testimonials', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
@@ -93,13 +257,11 @@ bot.action('menu_testimonials', async (ctx) => {
   );
 });
 
-
-// 5. Sección: Garantía (Moneda HTML/JS)
 bot.action('menu_guarantee', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
     `🛡️ *Tu Garantía de Inversión*\n\n` +
-    `Queremos que te sientas 100% seguro. Al activar cualquier paquete, recibes de forma inmediata un **Certificado de Inversión Virtual interactivo** (una moneda digital animada en un archivo HTML/JS optimizado para celular).\n\n` +
+    `Queremos que te sientas 100% seguro. Al activar cualquier paquete, recibes de forma inmediata un **Certificado de Inversión Virtual interactivo** (una moneda digital animada).\n\n` +
     `Incluye tu nombre, el activo elegido, el monto y un código de seguridad único.`,
     {
       parse_mode: 'Markdown',
@@ -111,8 +273,6 @@ bot.action('menu_guarantee', async (ctx) => {
   );
 });
 
-
-// 6. Sección: Soporte
 bot.action('menu_support', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText(
@@ -128,8 +288,6 @@ bot.action('menu_support', async (ctx) => {
   );
 });
 
-
-// Botón de retorno al inicio genérico
 bot.action('back_to_start', async (ctx) => {
   await ctx.answerCbQuery();
   const userName = ctx.from.first_name || 'Inversionista';
@@ -147,15 +305,208 @@ bot.action('back_to_start', async (ctx) => {
   );
 });
 
+// Escuchar cuando el usuario envía el comprobante fotográfico
+bot.on('photo', async (ctx) => {
+  const userId = ctx.from.id;
+  const userName = ctx.from.first_name || 'Inversionista';
+  const photo = ctx.message.photo[ctx.message.photo.length - 1];
+  const fileId = photo.file_id;
 
-// Iniciar el Bot
-bot.launch();
-console.log('🤖 Bot de Telegram en ejecución...');
+  try {
+    await db.collection('investments').doc(userId.toString()).update({
+      status: 'waiting_approval',
+      voucherFileId: fileId
+    });
 
-// Manejo seguro de cierre
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    await ctx.reply(
+      `⏳ *Comprobante recibido con éxito.*\n\nNuestro equipo está validando tu transferencia. En breve recibirás la confirmación y tu certificado 3D autorizado.`,
+      { parse_mode: 'Markdown' }
+    );
 
+    const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+    if (ADMIN_CHAT_ID) {
+      await ctx.telegram.sendPhoto(ADMIN_CHAT_ID, fileId, {
+        caption: `🔔 *Nuevo Comprobante de Pago*\n\n` +
+                 `• Inversionista: ${userName}\n` +
+                 `• Telegram ID: \`${userId}\`\n` +
+                 `• Monto: $50.000 COP`,
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(`✅ Aprobar Pago (${userId})`, `approve_${userId}`)],
+          [Markup.button.callback(`❌ Rechazar`, `reject_${userId}`)]
+        ])
+      });
+    }
+  } catch (error) {
+    console.error('Error procesando el comprobante:', error);
+    await ctx.reply('Hubo un error al procesar tu comprobante. Por favor intenta de nuevo.');
+  }
+});
 
+// Escuchar los datos de pago enviados por el usuario tras ser aprobado
+bot.on('text', async (ctx) => {
+  const userId = ctx.from.id.toString();
+  const textMessage = ctx.message.text;
 
+  // Ignorar si el mensaje empieza con comandos como /start
+  if (textMessage.startsWith('/')) return;
 
+  try {
+    const userDocRef = db.collection('investments').doc(userId);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) return;
+    const userData = userDoc.data();
+
+    // Verificamos si el usuario está en el paso de registrar sus datos de cobro
+    if (userData.status === 'approved' && userData.waitingForPayoutDetails === true) {
+      
+      // Guardar la información de pago y desactivar la bandera
+      await userDocRef.update({
+        payoutDetails: textMessage,
+        waitingForPayoutDetails: false,
+        payoutRegisteredAt: FieldValue.serverTimestamp()
+      });
+
+      await ctx.reply(
+        `✅ *¡Datos de cobro guardados con éxito!*\n\n` +
+        `Hemos registrado tu información de destino. Al cumplirse tus 21 días de ciclo, tus rendimientos serán transferidos directamente allí.\n\n` +
+        `¡Mucho éxito en tu inversión con Apex! 🚀`,
+        { parse_mode: 'Markdown' }
+      );
+
+      // (Opcional) Notificar al administrador que el usuario ya dejó sus datos de cobro
+      const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+      if (ADMIN_CHAT_ID) {
+        await ctx.telegram.sendMessage(
+          ADMIN_CHAT_ID,
+          `📌 *Datos de Pago Registrados*\n\n` +
+          `• Inversionista: ${userData.userName} (\`${userId}\`)\n` +
+          `• Destino de Ganancias: \`${textMessage}\``,
+          { parse_mode: 'Markdown' }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error al guardar los datos de pago:', error);
+  }
+});
+
+// ==========================================
+// ACCIONES DEL ADMINISTRADOR (APROBAR / RECHAZAR)
+// ==========================================
+
+bot.action(/^approve_(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const targetUserId = ctx.match[1];
+  const adminName = ctx.from.first_name || 'Admin';
+
+  try {
+    const secureToken = 'APEX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    // Actualizamos en Firestore
+    await db.collection('investments').doc(targetUserId).update({
+      status: 'approved',
+      waitingForPayoutDetails: true,
+      secureToken: secureToken,
+      approvedAt: FieldValue.serverTimestamp()
+    });
+
+    const userDoc = await db.collection('investments').doc(targetUserId).get();
+    if (!userDoc.exists) {
+      return ctx.reply('⚠️ No se encontró la inversión para este usuario en la base de datos.');
+    }
+    const userData = userDoc.data();
+
+    const secureCertificateUrl = `${BASE_URL}/?token=${secureToken}&name=${encodeURIComponent(userData.userName)}&asset=${encodeURIComponent(userData.selectedAsset)}&amount=${userData.amount}`;
+
+    // 💡 GENERAR ENLACE DE INVITACIÓN ÚNICO AL GRUPO VIP DE ACTIVOS
+    const VIP_CHAT_ID = process.env.VIP_CHAT_ID; 
+    let vipInviteLink = '';
+    
+    if (VIP_CHAT_ID) {
+      const inviteLinkObj = await ctx.telegram.createChatInviteLink(VIP_CHAT_ID, {
+        member_limit: 1, // El enlace solo sirve para 1 sola persona y se quema
+        expire_date: Math.floor(Date.now() / 1000) + 86400 // Expira en 24 horas
+      });
+      vipInviteLink = inviteLinkObj.invite_link;
+    }
+
+    // Mensaje enriquecido para el inversor
+    let messageText = `🎉 ¡Pago verificado y aprobado con éxito!\n\n` +
+                      `Tu ciclo de 21 días con *${userData.selectedAsset}* está oficialmente activo.\n\n` +
+                      `🛡️ Tu **Certificado de Garantía 3D** oficial:\n👉 ${secureCertificateUrl}\n`;
+
+    if (vipInviteLink) {
+      messageText += `\n📈 *Acceso a Análisis Exclusivo:*\n` +
+                     `Te has ganado el acceso a nuestro canal privado de análisis técnico para Bitcoin, S&P 500, Oro y Petróleo:\n` +
+                     `👉 ${vipInviteLink}\n`;
+    }
+
+    messageText += `\n📥 *Último paso importante:*\n` +
+                   `Por favor, escribe en este chat los datos donde deseas recibir tus ganancias (ej: *Nequi: 3001234567*).`;
+
+    await ctx.telegram.sendMessage(targetUserId, messageText, { parse_mode: 'Markdown' });
+
+    await ctx.editMessageCaption(
+      `✅ *Pago Aprobado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
+      { parse_mode: 'Markdown' }
+    );
+
+  } catch (error) {
+    console.error('Error al aprobar el pago:', error);
+    await ctx.reply('❌ Ocurrió un error al aprobar la inversión en la base de datos.');
+  }
+});
+
+bot.action(/^reject_(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const targetUserId = ctx.match[1];
+  const adminName = ctx.from.first_name || 'Admin';
+
+  try {
+    await db.collection('investments').doc(targetUserId).update({
+      status: 'rejected',
+      rejectedAt: FieldValue.serverTimestamp()
+    });
+
+    await ctx.telegram.sendMessage(
+      targetUserId,
+      `❌ *Lo sentimos, tu comprobante no pudo ser verificado.*\n\n` +
+      `Es posible que la imagen no sea clara, el monto no coincida o los datos de la transferencia estén incompletos.\n\n` +
+      `Por favor, verifica la información y vuelve a enviar tu comprobante o contacta a soporte si tienes dudas.`,
+      { parse_mode: 'Markdown' }
+    );
+
+    await ctx.editMessageCaption(
+      `❌ *Pago Rechazado por ${adminName}*\n• Inversionista ID: \`${targetUserId}\``,
+      { parse_mode: 'Markdown' }
+    );
+
+  } catch (error) {
+    console.error('Error al rechazar el pago:', error);
+    await ctx.reply('❌ Ocurrió un error al procesar el rechazo.');
+  }
+});
+
+// ==========================================
+// INTEGRACIÓN DEL WEBHOOK CON EXPRESS Y INICIO DEL SERVIDOR
+// ==========================================
+
+// Configurar la ruta del webhook que Telegram llamará en cada evento
+app.use(bot.webhookCallback(WEBHOOK_PATH));
+
+app.listen(PORT, async () => {
+  console.log(`🌐 Servidor web y certificado en línea en el puerto ${PORT}`);
+
+  try {
+    // Configurar automáticamente el Webhook en Telegram al arrancar
+    await bot.telegram.setWebhook(`${BASE_URL}${WEBHOOK_PATH}`);
+    console.log(`🤖 Webhook de Telegram configurado exitosamente en: ${BASE_URL}${WEBHOOK_PATH}`);
+  } catch (error) {
+    console.error('❌ Error configurando el Webhook en Telegram:', error);
+  }
+});
+
+// process.once('SIGINT', () => bot.stop('SIGINT'));
+// process.once('SIGTERM', () => bot.stop('SIGTERM'));
